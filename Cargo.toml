@@ -2,6 +2,13 @@
 name = "zero2prod_antonio"
 version = "0.1.0"
 edition = "2021"
+authors = ["Laifsyn"]
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "zero2prod"
 
 [dependencies]
 actix-web = "4.4.0"
