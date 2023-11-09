@@ -5,15 +5,14 @@
 //
 // You can inspect what code gets generated using
 // `cargo expand --test health_check` (<- name of the test file)
-use zero2prod_antonio::LOCAL_HOST;
+use zero2prod_antonio::{bind_port, LOCAL_HOST_IP};
 #[tokio::test]
 async fn health_check_works() {
-    spawn_app();
-    // We need to bring in `reqwest`
-    // to perform HTTP requests against our application.
+    let host_address = spawn_app();
     let client = reqwest::Client::new();
+
     let response = client
-        .get(format!("http://{LOCAL_HOST}/health_check"))
+        .get(format!("http://{host_address}/health_check"))
         .send()
         .await
         .expect("Failed to execute request.");
@@ -25,8 +24,11 @@ async fn health_check_works() {
 }
 
 // Launch our application in the background ~somehow~
-fn spawn_app() {
-    let server = zero2prod_antonio::run().expect("Failed to bind Address");
-
+fn spawn_app() -> String {
+    use std::format as f;
+    let listener = bind_port(f!("{LOCAL_HOST_IP}:0"));
+    let port = listener.local_addr().unwrap().port();
+    let server = zero2prod_antonio::run(listener).expect("Failed to bind Address");
     tokio::spawn(server);
+    f!("{LOCAL_HOST_IP}:{port}")
 }
