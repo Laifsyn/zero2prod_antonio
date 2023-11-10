@@ -12,7 +12,9 @@ name = "zero2prod"
 
 [dependencies]
 actix-web = "4.4.0"
+serde = { version = "1.0.192", features = ["derive"] }
 tokio = { version = "1.33.0", features = ["macros", "rt-multi-thread"] }
 
 [dev-dependencies]
+quote = "1.0.33"
 reqwest = "0.11.22"

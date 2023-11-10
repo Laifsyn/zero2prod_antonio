@@ -1687,7 +1687,9 @@ name = "zero2prod_antonio"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "quote",
  "reqwest",
+ "serde",
  "tokio",
 ]
 
