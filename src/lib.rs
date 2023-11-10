@@ -1,6 +1,5 @@
-use std::net::TcpListener;
-
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use std::net::TcpListener;
 pub const LOCAL_HOST_IP: &str = "127.0.0.1";
 
 // We need to mark `run` as public.
@@ -26,9 +25,19 @@ async fn greet(req: HttpRequest) -> impl Responder {
     let name = req.match_info().get("arbitrary_name").unwrap_or("World");
     format!("Hello {}!", &name)
 }
-async fn subscribe(_req: HttpRequest) -> impl Responder {
-    HttpResponse::Ok()
+async fn subscribe(_form: web::Form<UserEmail>) -> HttpResponse {
+    #[cfg(debug_assertions)]
+    eprintln!("email:{}\nname: {}\n", _form.email, _form.name);
+    HttpResponse::Ok().finish()
 }
 async fn health_check() -> impl Responder {
+    #[cfg(debug_assertions)]
+    eprintln!("Pong! - Alive");
     HttpResponse::Ok()
+}
+#[derive(serde::Deserialize)]
+#[allow(dead_code)]
+struct UserEmail {
+    name: String,
+    email: String,
 }

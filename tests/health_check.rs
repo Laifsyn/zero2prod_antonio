@@ -37,7 +37,7 @@ async fn subscribe_return_ok_200() {
     let host_address = spawn_app();
     let client = reqwest::Client::new();
 
-    let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
+    let body = "name=le%20guin&email=ursula_le_guin%40gmail.comm&other=dfghjkl";
     println!("{}/subscriptions", &host_address);
     let response = client
         .post(format!("{}/subscriptions", &host_address))
@@ -62,6 +62,11 @@ async fn subscribe_return_bad_request_400() {
     let test_cases = vec![
         ("name=le%20guin", "missing the email"),
         ("email=ursula_le_guin%40gmail.com", "missing the name"),
+        ("name=le%20guin&other_param=hello_world", "extra fields"),
+        (
+            "nmes=le%20s&other_par=hello_world",
+            "only unexpected fields",
+        ),
         ("", "missing both name and email"),
     ];
     for (invalid_body, error_message) in test_cases {

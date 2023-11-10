@@ -18,3 +18,9 @@ tokio = { version = "1.33.0", features = ["macros", "rt-multi-thread"] }
 [dev-dependencies]
 quote = "1.0.33"
 reqwest = "0.11.22"
+
+[profile.dbg_release]
+inherits = "release"
+opt-level = 0
+incremental = true
+codegen-units = 512
