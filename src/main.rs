@@ -4,5 +4,9 @@ async fn main() -> Result<(), std::io::Error> {
     let listener = bind_port(format!("{LOCAL_HOST_IP}:0"));
     println!("Server started: {}", listener.local_addr().unwrap());
     let server = run(listener)?;
-    server.await
+    tokio::spawn(async move {
+        let _ = server.await;
+    });
+
+    Ok(())
 }

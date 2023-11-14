@@ -1,5 +1,8 @@
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use std::net::TcpListener;
+pub mod configuration;
+pub mod routes;
+pub mod startup;
 pub const LOCAL_HOST_IP: &str = "127.0.0.1";
 
 // We need to mark `run` as public.

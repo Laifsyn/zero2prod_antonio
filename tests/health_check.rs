@@ -33,7 +33,7 @@ fn spawn_app() -> String {
 }
 
 #[tokio::test]
-async fn subscribe_return_ok_200() {
+async fn subscribe_return_ok_200_for_valid_data() {
     let host_address = spawn_app();
     let client = reqwest::Client::new();
 
@@ -54,7 +54,7 @@ async fn subscribe_return_ok_200() {
     )
 }
 #[tokio::test]
-async fn subscribe_return_bad_request_400() {
+async fn subscribe_return_bad_request_400_for_invalid_data() {
     // Arrange
     let host_address = spawn_app();
     let client = reqwest::Client::new();
