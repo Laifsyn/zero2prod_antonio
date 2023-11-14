@@ -27,7 +27,7 @@ fn spawn_app() -> String {
     use std::format as f;
     let listener = bind_port(f!("{LOCAL_HOST_IP}:0"));
     let port = listener.local_addr().unwrap().port();
-    let server = zero2prod_antonio::run(listener).expect("Failed to bind Address");
+    let server = zero2prod_antonio::startup::run(listener).expect("Failed to bind Address");
     tokio::spawn(server);
     f!("http://{LOCAL_HOST_IP}:{port}")
 }

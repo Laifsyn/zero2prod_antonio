@@ -1,4 +1,5 @@
-use zero2prod_antonio::{bind_port, run, LOCAL_HOST_IP};
+use zero2prod_antonio::startup::run;
+use zero2prod_antonio::{bind_port, LOCAL_HOST_IP};
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let listener = bind_port(format!("{LOCAL_HOST_IP}:0"));
