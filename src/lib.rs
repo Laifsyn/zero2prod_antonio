@@ -1,6 +1,5 @@
 use crate::configuration::{get_configuration, Settings};
-use quote::quote;
-use sqlx::{Connection, PgConnection};
+use sqlx::PgPool;
 use std::net::TcpListener;
 
 pub mod configuration;
@@ -19,19 +18,22 @@ pub fn bind_port(ip_port: String) -> TcpListener {
     // I didn't use `expect(format!())` because clippy would ask me to rewrite as unwrap_or_else
 }
 
-pub async fn generate_database_connection() -> PgConnection {
+pub async fn generate_database_connection() -> PgPool {
+    // Load connection from stored settings
     let configuration: Settings = get_configuration().expect("Failed to read configuration.");
     let connection_string = configuration.database.connection_string();
-    let mut connection = PgConnection::connect(&connection_string)
+    // Stablish DB connection.
+    let connection = PgPool::connect(&connection_string)
         .await
         .unwrap_or_else(|_| panic!("Couldn't connect to \n{connection_string}\n"));
+    //
     sqlx::migrate!()
-        .run(&mut connection)
+        .run(&connection)
         .await
         .unwrap_or_else(|e| panic!("Couldn't migrate data to {}\nError:{e}", connection_string));
     println!(
-        "Connection to {} database has been succesful",
-        quote!(configuration.database.database_name)
+        "Connection to \"{}\" database has been succesful",
+        configuration.database.database_name
     );
     connection
 }

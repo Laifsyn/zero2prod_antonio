@@ -18,16 +18,24 @@ quote = "1.0.33"
 serde = { version = "1.0.192", features = ["derive"] }
 tokio = { version = "1.33.0", features = ["macros", "rt-multi-thread"] }
 
+[dependencies.uuid]
+version = "1.5.0"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+
 [dependencies.sqlx]
 version = "0.7.2"
 default-features = false
 features = [
-    "runtime-tokio-rustls", 
-    "macros", 
-    "postgres", 
-    "uuid", 
-    "chrono", 
-    "migrate"
+    "runtime-tokio-rustls",
+    "macros",
+    "postgres",
+    "uuid",
+    "chrono",
+    "migrate",
 ]
 
 [dev-dependencies]

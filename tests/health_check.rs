@@ -6,13 +6,15 @@
 // You can inspect what code gets generated using
 // `cargo expand --test health_check` (<- name of the test file)
 use quote::quote;
+use sqlx::PgConnection;
 use zero2prod_antonio::{bind_port, generate_database_connection};
 extern crate dotenv;
 
 use dotenv::dotenv;
 #[tokio::test]
 async fn health_check_works() {
-    let host_address = spawn_app();
+    let connection = generate_database_connection().await;
+    let host_address = spawn_app(connection);
     let client = reqwest::Client::new();
 
     let response = client
@@ -26,12 +28,13 @@ async fn health_check_works() {
     assert_eq!(Some(0), response.content_length(), "Response wasn't empty!");
 }
 
-fn spawn_app() -> String {
+fn spawn_app(connection: PgConnection) -> String {
     use std::format as f;
     use zero2prod_antonio::LOCAL_HOST_IP;
     let listener = bind_port(f!("{LOCAL_HOST_IP}:0"));
     let port = listener.local_addr().unwrap().port();
-    let server = zero2prod_antonio::startup::run(listener).expect("Failed to bind Address");
+    let server =
+        zero2prod_antonio::startup::run(listener, connection).expect("Failed to bind Address");
     tokio::spawn(server);
     f!("http://{LOCAL_HOST_IP}:{port}")
 }
@@ -39,8 +42,9 @@ fn spawn_app() -> String {
 #[tokio::test]
 async fn subscribe_return_ok_200_for_valid_data() {
     let _ = dotenv();
-    let host_address = spawn_app();
-    let mut _connection = generate_database_connection().await;
+    let connection = generate_database_connection().await;
+    let host_address = spawn_app(connection);
+    let mut connection = generate_database_connection().await;
 
     let client = reqwest::Client::new();
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.comm&other=dfghjkl";
@@ -61,7 +65,7 @@ async fn subscribe_return_ok_200_for_valid_data() {
     );
 
     let saved = sqlx::query!("SELECT email, name FROM cli_subscriptions")
-        .fetch_one(&mut _connection)
+        .fetch_one(&mut connection)
         .await
         .expect("Failed to fetch saved subscriptions");
     assert_eq!(saved.email, "ursula_le_guin@gmail.com");
@@ -70,7 +74,8 @@ async fn subscribe_return_ok_200_for_valid_data() {
 #[tokio::test]
 async fn subscribe_return_bad_request_400_for_invalid_data() {
     // Arrange
-    let host_address = spawn_app();
+    let connection = generate_database_connection().await;
+    let host_address = spawn_app(connection);
     let client = reqwest::Client::new();
     // Act
     let test_cases = vec![
