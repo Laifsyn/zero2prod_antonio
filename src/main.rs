@@ -1,8 +1,8 @@
 use zero2prod_antonio::startup::run;
-use zero2prod_antonio::{bind_port, configuration, generate_database_connection, LOCAL_HOST_IP};
+use zero2prod_antonio::{bind_port, configuration, get_connection_to_database, LOCAL_HOST_IP};
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let connection = generate_database_connection();
+    let connection = get_connection_to_database();
     //--database-url "postgres://antonio:12345678@localhost:32768/zero2prod_newsletter"
     let server_port = configuration::get_configuration().unwrap().application_port;
     let listener = bind_port(format!("{LOCAL_HOST_IP}:{}", server_port));

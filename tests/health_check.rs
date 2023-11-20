@@ -6,19 +6,23 @@
 // You can inspect what code gets generated using
 // `cargo expand --test health_check` (<- name of the test file)
 use quote::quote;
-use sqlx::PgConnection;
-use zero2prod_antonio::{bind_port, generate_database_connection};
+use sqlx::PgPool;
+use zero2prod_antonio::{bind_port, get_connection_to_database};
 extern crate dotenv;
 
+pub struct TestApp {
+    // The http URL to query the server
+    pub host_address: String,
+    pub db_pool: PgPool,
+}
 use dotenv::dotenv;
 #[tokio::test]
 async fn health_check_works() {
-    let connection = generate_database_connection().await;
-    let host_address = spawn_app(connection);
+    let test_app = spawn_app().await;
     let client = reqwest::Client::new();
 
     let response = client
-        .get(format!("{host_address}/health_check"))
+        .get(format!("{}/health_check", test_app.host_address))
         .send()
         .await
         .expect("Failed to execute request.");
@@ -27,33 +31,39 @@ async fn health_check_works() {
     assert!(response.status().is_success());
     assert_eq!(Some(0), response.content_length(), "Response wasn't empty!");
 }
-
-fn spawn_app(connection: PgConnection) -> String {
+/**
+ * returns host address of the server
+ */
+async fn spawn_app() -> TestApp {
+    let connection_pool = get_connection_to_database().await;
     use std::format as f;
     use zero2prod_antonio::LOCAL_HOST_IP;
     let listener = bind_port(f!("{LOCAL_HOST_IP}:0"));
     let port = listener.local_addr().unwrap().port();
-    let server =
-        zero2prod_antonio::startup::run(listener, connection).expect("Failed to bind Address");
+    let server = zero2prod_antonio::startup::run(listener, connection_pool.clone())
+        .expect("Failed to bind Address");
     tokio::spawn(server);
-    f!("http://{LOCAL_HOST_IP}:{port}")
+    TestApp {
+        host_address: f!("http://{LOCAL_HOST_IP}:{port}"),
+        db_pool: connection_pool,
+    }
 }
 
 #[tokio::test]
 async fn subscribe_return_ok_200_for_valid_data() {
     let _ = dotenv();
-    let connection = generate_database_connection().await;
-    let host_address = spawn_app(connection);
-    let mut connection = generate_database_connection().await;
+
+    let test_app = spawn_app().await;
 
     let client = reqwest::Client::new();
-    let body = "name=le%20guin&email=ursula_le_guin%40gmail.comm&other=dfghjkl";
-    let target_address = format!("{}/subscriptions", &host_address);
+    let (name, email) = ("le guin", "ursula_le_guinny@gmail.com");
+    let body = format!("name={name}&email={email}&other=dfghjkl");
+    let target_address = format!("{}/subscriptions", test_app.host_address);
     println!("Uploading to: {target_address}");
     let response = client
         .post(target_address)
         .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
+        .body(body.clone())
         .send()
         .await
         .unwrap_or_else(|error| panic!("Failed to execute request \"{error}\""));
@@ -64,20 +74,21 @@ async fn subscribe_return_ok_200_for_valid_data() {
         "Un-Successful post with payload {body}"
     );
 
-    let saved = sqlx::query!("SELECT email, name FROM cli_subscriptions")
-        .fetch_one(&mut connection)
-        .await
-        .expect("Failed to fetch saved subscriptions");
-    assert_eq!(saved.email, "ursula_le_guin@gmail.com");
-    assert_eq!(saved.name, "le guin");
+    let saved = sqlx::query!(
+        "SELECT email, name FROM subscriptions WHERE email = $1",
+        email
+    )
+    .fetch_one(&test_app.db_pool)
+    .await
+    .unwrap_or_else(|e: sqlx::Error| panic!("Failed to fetch saved subscriptions. \n{e:?}"));
+    assert_eq!(saved.email, email);
+    assert_eq!(saved.name, name);
 }
+
 #[tokio::test]
 async fn subscribe_return_bad_request_400_for_invalid_data() {
-    // Arrange
-    let connection = generate_database_connection().await;
-    let host_address = spawn_app(connection);
+    let test_app = spawn_app().await;
     let client = reqwest::Client::new();
-    // Act
     let test_cases = vec![
         ("name=le%20guin", "missing the email"),
         ("email=ursula_le_guin%40gmail.com", "missing the name"),
@@ -90,7 +101,7 @@ async fn subscribe_return_bad_request_400_for_invalid_data() {
     ];
     for (invalid_body, error_message) in test_cases {
         let response = client
-            .post(format!("{}/subscriptions", host_address))
+            .post(format!("{}/subscriptions", test_app.host_address))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(invalid_body)
             .send()

@@ -18,7 +18,7 @@ pub fn bind_port(ip_port: String) -> TcpListener {
     // I didn't use `expect(format!())` because clippy would ask me to rewrite as unwrap_or_else
 }
 
-pub async fn generate_database_connection() -> PgPool {
+pub async fn get_connection_to_database() -> PgPool {
     // Load connection from stored settings
     let configuration: Settings = get_configuration().expect("Failed to read configuration.");
     let connection_string = configuration.database.connection_string();
