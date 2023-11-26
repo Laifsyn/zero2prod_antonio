@@ -2,3 +2,49 @@
 name = "zero2prod_antonio"
 version = "0.1.0"
 edition = "2021"
+authors = ["Laifsyn"]
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "zero2prod"
+
+[dependencies]
+actix-web = "4.4.0"
+chrono = "0.4.31"
+config = "0.13.3"
+quote = "1.0.33"
+serde = { version = "1.0.192", features = ["derive"] }
+tokio = { version = "1.33.0", features = ["macros", "rt-multi-thread"] }
+
+[dependencies.uuid]
+version = "1.5.0"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+
+[dependencies.sqlx]
+version = "0.7.2"
+default-features = false
+features = [
+    "runtime-tokio-rustls",
+    "macros",
+    "postgres",
+    "uuid",
+    "chrono",
+    "migrate",
+]
+
+[dev-dependencies]
+dotenv = "0.15.0"
+quote = "1.0.33"
+reqwest = "0.11.22"
+
+[profile.dbg_release]
+inherits = "release"
+opt-level = 0
+incremental = true
+codegen-units = 512
