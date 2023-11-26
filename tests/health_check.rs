@@ -8,7 +8,11 @@
 use quote::quote;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
-use zero2prod_antonio::{bind_port, configuration::get_configuration, generate_db_pool};
+use zero2prod_antonio::{
+    bind_port,
+    configuration::{get_configuration, Settings},
+    generate_db_pool,
+};
 extern crate dotenv;
 
 pub struct TestApp {
@@ -35,29 +39,39 @@ async fn health_check_works() {
 
 async fn configure_database() -> PgPool {
     let mut config = get_configuration().expect("Couldn't load config files.");
-    config.database.database_name = "test_".to_string() + &Uuid::new_v4().to_string();
-    let mut connection = PgConnection::connect(&config.database.connection_string_without_db())
-        .await
-        .unwrap_or_else(|_e| {
-            panic!(
-                "@{}\nCouldn't connect to \"{}\" database\n{_e:#?}\n\n",
-                config.database.connection_string_without_db(),
+    config.database.database_name = "test_db".to_string();
+    let connection: Result<PgConnection, sqlx::Error> =
+        PgConnection::connect(&config.database.connection_string()).await;
+    if let Err(connection_error) = connection {
+        match connection_error {
+            sqlx::Error::Database(database_error) => match database_error.code().as_deref() {
+                Some("3D000") => {
+                    create_db(&config).await;
+                }
+                _ => panic!("Database Error: {database_error:#?}\n"),
+            },
+            _ => panic!(
+                "\nCouldn't connect to \"{}\" database\nError:{connection_error:#?}<End\n\n",
                 config.database.database_name
-            )
-        });
+            ),
+        }
+    }
 
-    connection
-        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database.database_name).as_str())
+    generate_db_pool(config).await // create a connection with the newly created database
+}
+async fn create_db(config: &Settings) {
+    let mut connection = PgConnection::connect(&config.database.connection_string_without_db())
         .await
         .unwrap_or_else(|e| {
             panic!(
-                "@{}\nCouldn't create {} database!,{e:?}",
-                config.database.connection_string_without_db(),
-                config.database.database_name
+                "Failed to set connection to \"{}\"\n{e:?}",
+                config.database.connection_string_without_db()
             )
         });
-
-    generate_db_pool(config).await // create a connection with the newly created database
+    connection
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database.database_name).as_str())
+        .await
+        .unwrap_or_else(|e| panic!("Failed to create database {e:?}"));
 }
 async fn spawn_app() -> TestApp {
     let connection_pool = configure_database().await;
@@ -82,7 +96,10 @@ async fn subscribe_return_ok_200_for_valid_data() {
     let test_app = spawn_app().await;
 
     let client = reqwest::Client::new();
-    let (name, email) = ("le guin", "ursula_le_guinny@gmail.com");
+    let (name, email) = (
+        "le guin",
+        format!("ursula_le_guinny{}@gmail.com", Uuid::new_v4()),
+    );
     let body = format!("name={name}&email={email}&other=dfghjkl");
     let target_address = format!("{}/subscriptions", test_app.host_address);
     println!("Uploading to: {target_address}");
