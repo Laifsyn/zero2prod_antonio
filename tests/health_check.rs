@@ -6,8 +6,9 @@
 // You can inspect what code gets generated using
 // `cargo expand --test health_check` (<- name of the test file)
 use quote::quote;
-use sqlx::PgPool;
-use zero2prod_antonio::{bind_port, get_connection_to_database};
+use sqlx::{Connection, Executor, PgConnection, PgPool};
+use uuid::Uuid;
+use zero2prod_antonio::{bind_port, configuration::get_configuration, generate_db_pool};
 extern crate dotenv;
 
 pub struct TestApp {
@@ -31,14 +32,39 @@ async fn health_check_works() {
     assert!(response.status().is_success());
     assert_eq!(Some(0), response.content_length(), "Response wasn't empty!");
 }
-/**
- * returns host address of the server
- */
+
+async fn configure_database() -> PgPool {
+    let mut config = get_configuration().expect("Couldn't load config files.");
+    config.database.database_name = "test_".to_string() + &Uuid::new_v4().to_string();
+    let mut connection = PgConnection::connect(&config.database.connection_string_without_db())
+        .await
+        .unwrap_or_else(|_e| {
+            panic!(
+                "@{}\nCouldn't connect to \"{}\" database\n{_e:#?}\n\n",
+                config.database.connection_string_without_db(),
+                config.database.database_name
+            )
+        });
+
+    connection
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database.database_name).as_str())
+        .await
+        .unwrap_or_else(|e| {
+            panic!(
+                "@{}\nCouldn't create {} database!,{e:?}",
+                config.database.connection_string_without_db(),
+                config.database.database_name
+            )
+        });
+
+    generate_db_pool(config).await // create a connection with the newly created database
+}
 async fn spawn_app() -> TestApp {
-    let connection_pool = get_connection_to_database().await;
+    let connection_pool = configure_database().await;
+
     use std::format as f;
     use zero2prod_antonio::LOCAL_HOST_IP;
-    let listener = bind_port(f!("{LOCAL_HOST_IP}:0"));
+    let listener = bind_port(f!("{LOCAL_HOST_IP}:0")); // The IP where the HTTP Server will be listening from
     let port = listener.local_addr().unwrap().port();
     let server = zero2prod_antonio::startup::run(listener, connection_pool.clone())
         .expect("Failed to bind Address");
@@ -87,7 +113,7 @@ async fn subscribe_return_ok_200_for_valid_data() {
 
 #[tokio::test]
 async fn subscribe_return_bad_request_400_for_invalid_data() {
-    let test_app = spawn_app().await;
+    let test_app: TestApp = spawn_app().await;
     let client = reqwest::Client::new();
     let test_cases = vec![
         ("name=le%20guin", "missing the email"),

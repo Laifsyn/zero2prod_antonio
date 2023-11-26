@@ -2,7 +2,7 @@
 application_port: 7878
 database:
   host: "127.0.0.1"
-  port: 32768
+  port: 32771
   username: "antonio"
   password: "12345678"
   database_name: "zero2prod_newsletter"

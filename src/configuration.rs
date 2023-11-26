@@ -36,12 +36,15 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
 
 impl DatabaseSettings {
     pub fn connection_string(&self) -> String {
-        let ret = format!(
+        format!(
             "postgres://{}:{}@{}:{}/{}",
             self.username, self.password, self.host, self.port, self.database_name
-        );
-        #[cfg(debug_assertions)]
-        println!("Database Connection Link generated: {ret:?}");
-        ret
+        )
+    }
+    pub fn connection_string_without_db(&self) -> String {
+        format!(
+            "postgres://{}:{}@{}:{}",
+            self.username, self.password, self.host, self.port
+        )
     }
 }

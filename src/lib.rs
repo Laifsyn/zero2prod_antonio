@@ -18,22 +18,31 @@ pub fn bind_port(ip_port: String) -> TcpListener {
     // I didn't use `expect(format!())` because clippy would ask me to rewrite as unwrap_or_else
 }
 
+// pub async fn get_connection_to_database() -> PgPool {
+//     // Load connection from stored settings
+//     let configuration: Settings = get_configuration().expect("Failed to read configuration.");
+//     let connection_string = configuration.database.connection_string();
+//     generate_db_pool(connection_string, configuration.database.database_name).await
+// }
+
 pub async fn get_connection_to_database() -> PgPool {
     // Load connection from stored settings
-    let configuration: Settings = get_configuration().expect("Failed to read configuration.");
-    let connection_string = configuration.database.connection_string();
-    // Stablish DB connection.
-    let connection = PgPool::connect(&connection_string)
+    let configs: Settings = get_configuration().expect("Failed to read configuration.");
+    generate_db_pool(configs).await
+}
+pub async fn generate_db_pool(configs: Settings) -> PgPool {
+    let connection_address = configs.database.connection_string();
+    // Stablish DB pool connection.
+    let connection = PgPool::connect(&connection_address)
         .await
-        .unwrap_or_else(|_| panic!("Couldn't connect to \n{connection_string}\n"));
-    //
+        .unwrap_or_else(|_| panic!("Couldn't connect to \n{connection_address}\n"));
     sqlx::migrate!()
         .run(&connection)
         .await
-        .unwrap_or_else(|e| panic!("Couldn't migrate data to {}\nError:{e}", connection_string));
+        .unwrap_or_else(|e| panic!("Couldn't migrate data to {}\nError:{e}", connection_address));
     println!(
-        "Connection to \"{}\" database has been succesful",
-        configuration.database.database_name
+        "Established Pool Connection to \"{}\".",
+        configs.database.database_name
     );
     connection
 }
