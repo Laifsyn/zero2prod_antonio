@@ -17,6 +17,7 @@ chrono = "0.4.31"
 config = "0.13.3"
 quote = "1.0.33"
 tracing-bunyan-formatter = "0.3.9"
+tracing-log = "0.2.0"
 serde = { version = "1.0.192", features = ["derive"] }
 tokio = { version = "1.33.0", features = ["macros", "rt-multi-thread"] }
 tracing = { version = "0.1.40", features = ["log"] }
