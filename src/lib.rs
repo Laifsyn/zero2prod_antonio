@@ -5,6 +5,7 @@ use std::net::TcpListener;
 pub mod configuration;
 pub mod routes;
 pub mod startup;
+pub mod telemetry;
 
 pub const LOCAL_HOST_IP: &str = "127.0.0.1";
 
