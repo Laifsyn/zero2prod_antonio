@@ -10,7 +10,6 @@ pub struct UserEmail {
 }
 
 pub async fn subscribe(form: web::Form<UserEmail>, connection: web::Data<PgPool>) -> HttpResponse {
-    #[cfg(debug_assertions)]
     log::info!("captured email:\"{}\", name: \"{}\"", form.email, form.name);
     log::info!("Saving new subscriber details in the database");
     match sqlx::query!(
