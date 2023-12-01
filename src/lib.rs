@@ -14,10 +14,11 @@ pub fn bind_port(ip_port: String) -> TcpListener {
     // I didn't use `expect(format!())` because clippy would ask me to rewrite as unwrap_or_else
 }
 
-pub async fn get_connection_to_database() -> PgPool {
+pub async fn get_connection_to_database() -> (PgPool, u16) {
     // Load connection from stored settings
-    let configs: Settings = get_configuration().expect("Failed to read configuration.");
-    generate_db_pool(configs).await
+    let configs = get_configuration().expect("Failed to read configuration.");
+    let port = configs.application_port;
+    (generate_db_pool(configs).await, port)
 }
 pub async fn generate_db_pool(configs: Settings) -> PgPool {
     let connection_address = configs.database.connection_string();
@@ -29,7 +30,7 @@ pub async fn generate_db_pool(configs: Settings) -> PgPool {
         .run(&connection)
         .await
         .unwrap_or_else(|e| panic!("Couldn't migrate data to {}\nError:{e}", connection_address));
-    println!(
+    log::info!(
         "Established Pool Connection to \"{}\".",
         configs.database.database_name
     );

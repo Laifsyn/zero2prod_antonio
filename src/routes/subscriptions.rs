@@ -11,7 +11,8 @@ pub struct UserEmail {
 
 pub async fn subscribe(form: web::Form<UserEmail>, connection: web::Data<PgPool>) -> HttpResponse {
     #[cfg(debug_assertions)]
-    eprintln!("captured email:\"{}\", name: \"{}\"", form.email, form.name);
+    log::info!("captured email:\"{}\", name: \"{}\"", form.email, form.name);
+    log::info!("Saving new subscriber details in the database");
     match sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -25,10 +26,13 @@ pub async fn subscribe(form: web::Form<UserEmail>, connection: web::Data<PgPool>
     .execute(connection.get_ref())
     .await
     {
-        Ok(_) => HttpResponse::Ok().finish(),
+        Ok(_) => {
+            log::info!("New subscriber details have been saved");
+            HttpResponse::Ok().finish()
+        }
         Err(error) => {
-            #[cfg(debug_assertions)]
-            println!("Error from SQL: {error:?}\nEnd of Error...",);
+            // #[cfg(debug_assertions)]
+            log::error!("Error from SQL: {error:?}\nEnd of Error...",);
             HttpResponse::InternalServerError().finish()
         }
     }
