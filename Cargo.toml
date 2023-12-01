@@ -18,7 +18,7 @@ config = "0.13.3"
 quote = "1.0.33"
 serde = { version = "1.0.192", features = ["derive"] }
 tokio = { version = "1.33.0", features = ["macros", "rt-multi-thread"] }
-log = "0.4.20"
+tracing = { version = "0.1.40", features = ["log"] }
 
 [dependencies.uuid]
 version = "1.5.0"

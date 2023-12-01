@@ -30,7 +30,7 @@ pub async fn generate_db_pool(configs: Settings) -> PgPool {
         .run(&connection)
         .await
         .unwrap_or_else(|e| panic!("Couldn't migrate data to {}\nError:{e}", connection_address));
-    log::info!(
+    tracing::info!(
         "Established Pool Connection to \"{}\".",
         configs.database.database_name
     );

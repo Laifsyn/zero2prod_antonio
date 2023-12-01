@@ -6,7 +6,7 @@ async fn main() -> Result<(), std::io::Error> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let (connection, server_port) = get_connection_to_database().await;
     let listener = bind_port(format!("{LOCAL_HOST_IP}:{}", server_port));
-    log::info!("Server started: {}", listener.local_addr().unwrap()); // Runtime Logging
+    tracing::info!("Server started: {}", listener.local_addr().unwrap()); // Runtime Logging
     let server = run(listener, connection)?;
     tokio::spawn(async move {
         server

@@ -29,7 +29,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     let ret = settings.try_deserialize::<Settings>();
     #[cfg(debug_assertions)]
     if let Ok(ret) = &ret {
-        log::info!(
+        tracing::info!(
             "DB Connection Settings - application_port: {:?},  {:?}",
             ret.application_port,
             ret.database.connection_string()

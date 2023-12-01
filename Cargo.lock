@@ -2894,12 +2894,12 @@ dependencies = [
  "config",
  "dotenv",
  "env_logger",
- "log",
  "quote",
  "reqwest",
  "serde",
  "sqlx",
  "tokio",
+ "tracing",
  "uuid",
 ]
 
