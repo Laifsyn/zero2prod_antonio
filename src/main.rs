@@ -4,7 +4,7 @@ use zero2prod_antonio::{bind_port, get_connection_to_database, LOCAL_HOST_IP};
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let subscriber = get_subscriber("zero2prod_antonio".into(), "info".into());
+    let subscriber = get_subscriber("zero2prod_antonio".into(), "info".into(), std::io::stdout);
     init_subscriber(subscriber);
 
     let (connection, server_port) = get_connection_to_database().await;
