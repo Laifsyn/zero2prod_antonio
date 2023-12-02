@@ -12,6 +12,7 @@ name = "zero2prod"
 
 [dependencies]
 actix-web = "4.4.0"
+tracing-actix-web = "0.7.9"
 chrono = "0.4.31"
 config = "0.13.3"
 quote = "1.0.33"
