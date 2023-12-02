@@ -5,6 +5,7 @@
 //
 // You can inspect what code gets generated using
 use quote::quote;
+use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use zero2prod_antonio::{
@@ -59,7 +60,7 @@ async fn configure_database() -> PgPool {
     let mut config = get_configuration().expect("Couldn't load config files.");
     config.database.database_name = "test_db".to_string();
     let connection: Result<PgConnection, sqlx::Error> =
-        PgConnection::connect(&config.database.connection_string()).await;
+        PgConnection::connect(&config.database.connection_string().expose_secret()).await;
     if let Err(connection_error) = connection {
         match connection_error {
             sqlx::Error::Database(database_error) => match database_error.code().as_deref() {
@@ -78,14 +79,19 @@ async fn configure_database() -> PgPool {
     generate_db_pool(config).await // create a connection with the newly created database
 }
 async fn create_db(config: &Settings) {
-    let mut connection = PgConnection::connect(&config.database.connection_string_without_db())
-        .await
-        .unwrap_or_else(|e| {
-            panic!(
-                "Failed to set connection to \"{}\"\n{e:?}",
-                config.database.connection_string_without_db()
-            )
-        });
+    let mut connection = PgConnection::connect(
+        config
+            .database
+            .connection_string_without_db()
+            .expose_secret(),
+    )
+    .await
+    .unwrap_or_else(|e| {
+        panic!(
+            "Failed to set connection to \"{}\"\n{e:?}",
+            &config.database.database_name
+        )
+    });
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database.database_name).as_str())
         .await
