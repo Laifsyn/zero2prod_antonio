@@ -4,23 +4,42 @@
 // It also spares you from having to specify the `#[test]` attribute.
 //
 // You can inspect what code gets generated using
-// `cargo expand --test health_check` (<- name of the test file)
 use quote::quote;
+use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use zero2prod_antonio::{
     bind_port,
     configuration::{get_configuration, Settings},
     generate_db_pool,
+    telemetry::{get_subscriber, init_subscriber},
 };
-extern crate dotenv;
+extern crate dotenvy;
+use once_cell::sync::Lazy;
+// Ensure that the `tracing` stack is only initialised once using `once_cell`
+#[allow(unused)]
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let default_filter_level = "info".to_string();
+    let subscriber_name = "test".to_string();
+    // We cannot assign the output of `get_subscriber` to a variable based on the
+    // value TEST_LOG` because the sink is part of the type returned by
+    // `get_subscriber`, therefore they are not the same type. We could work around
+    // it, but this is the most straight-forward way of moving forward.
 
+    if std::env::var("TEST_LOG").is_ok_and(|value| value.to_lowercase() == "true") {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
+        init_subscriber(subscriber);
+    };
+});
 pub struct TestApp {
     // The http URL to query the server
     pub host_address: String,
     pub db_pool: PgPool,
 }
-use dotenv::dotenv;
+use dotenvy::dotenv;
 #[tokio::test]
 async fn health_check_works() {
     let test_app = spawn_app().await;
@@ -41,7 +60,7 @@ async fn configure_database() -> PgPool {
     let mut config = get_configuration().expect("Couldn't load config files.");
     config.database.database_name = "test_db".to_string();
     let connection: Result<PgConnection, sqlx::Error> =
-        PgConnection::connect(&config.database.connection_string()).await;
+        PgConnection::connect(&config.database.connection_string().expose_secret()).await;
     if let Err(connection_error) = connection {
         match connection_error {
             sqlx::Error::Database(database_error) => match database_error.code().as_deref() {
@@ -60,20 +79,27 @@ async fn configure_database() -> PgPool {
     generate_db_pool(config).await // create a connection with the newly created database
 }
 async fn create_db(config: &Settings) {
-    let mut connection = PgConnection::connect(&config.database.connection_string_without_db())
-        .await
-        .unwrap_or_else(|e| {
-            panic!(
-                "Failed to set connection to \"{}\"\n{e:?}",
-                config.database.connection_string_without_db()
-            )
-        });
+    let mut connection = PgConnection::connect(
+        config
+            .database
+            .connection_string_without_db()
+            .expose_secret(),
+    )
+    .await
+    .unwrap_or_else(|e| {
+        panic!(
+            "Failed to set connection to \"{}\"\n{e:?}",
+            &config.database.database_name
+        )
+    });
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database.database_name).as_str())
         .await
         .unwrap_or_else(|e| panic!("Failed to create database {e:?}"));
 }
 async fn spawn_app() -> TestApp {
+    let _ = dotenv();
+    Lazy::force(&TRACING);
     let connection_pool = configure_database().await;
 
     use std::format as f;
@@ -91,8 +117,6 @@ async fn spawn_app() -> TestApp {
 
 #[tokio::test]
 async fn subscribe_return_ok_200_for_valid_data() {
-    let _ = dotenv();
-
     let test_app = spawn_app().await;
 
     let client = reqwest::Client::new();

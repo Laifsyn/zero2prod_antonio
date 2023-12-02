@@ -1,17 +1,22 @@
 use zero2prod_antonio::startup::run;
-use zero2prod_antonio::{bind_port, configuration, get_connection_to_database, LOCAL_HOST_IP};
+use zero2prod_antonio::telemetry::{get_subscriber, init_subscriber};
+use zero2prod_antonio::{bind_port, get_connection_to_database, LOCAL_HOST_IP};
+
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let connection = get_connection_to_database();
-    //--database-url "postgres://antonio:12345678@localhost:32768/zero2prod_newsletter"
-    let server_port = configuration::get_configuration().unwrap().application_port;
+    let subscriber = get_subscriber("zero2prod_antonio".into(), "info".into(), std::io::stdout);
+    init_subscriber(subscriber);
+
+    let (connection, server_port) = get_connection_to_database().await;
     let listener = bind_port(format!("{LOCAL_HOST_IP}:{}", server_port));
-    println!("Server started: {}", listener.local_addr().unwrap()); // Runtime Logging
-    let server = run(listener, connection.await)?;
-    let _ = tokio::spawn(async move {
-        let _ = server.await;
+    tracing::info!("Server started: {}", listener.local_addr().unwrap()); // Runtime Logging
+    let server = run(listener, connection)?;
+    tokio::spawn(async move {
+        server
+            .await
+            .unwrap_or_else(|e| panic!("Unexpected error running the server: {e:?}"));
     })
-    .await;
+    .await?;
 
     Ok(())
 }
