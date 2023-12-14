@@ -25,8 +25,7 @@ pub async fn get_connection_to_database() -> (PgPool, u16) {
 pub async fn generate_db_pool(configs: Settings) -> PgPool {
     let database_name = &configs.database.database_name;
     // Stablish DB pool connection.
-    let connection = PgPool::connect(configs.database.connection_string().expose_secret())
-        .await
+    let connection = PgPool::connect_lazy(configs.database.connection_string().expose_secret())
         .unwrap_or_else(|_| panic!("Couldn't connect to Database\n"));
     sqlx::migrate!()
         .run(&connection)
