@@ -1,5 +1,5 @@
-# configuration.yaml
-application_port: 7878
+application:
+  port: 7878
 database:
   host: "127.0.0.1"
   port: 32771

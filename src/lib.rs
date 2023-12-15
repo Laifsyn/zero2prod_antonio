@@ -19,7 +19,7 @@ pub fn bind_port(ip_port: String) -> TcpListener {
 pub async fn get_connection_to_database() -> (PgPool, u16) {
     // Load connection from stored settings
     let configs = get_configuration().expect("Failed to read configuration.");
-    let port = configs.application_port;
+    let port = configs.application.port;
     (generate_db_pool(configs).await, port)
 }
 pub async fn generate_db_pool(configs: Settings) -> PgPool {
