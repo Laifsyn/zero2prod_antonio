@@ -16,13 +16,12 @@ pub fn bind_port(ip_port: String) -> TcpListener {
     // I didn't use `expect(format!())` because clippy would ask me to rewrite as unwrap_or_else
 }
 
-pub async fn get_connection_to_database() -> (PgPool, u16) {
+pub async fn get_connection_to_database() -> (PgPool, Settings) {
     // Load connection from stored settings
     let configs = get_configuration().expect("Failed to read configuration.");
-    let port = configs.application.port;
-    (generate_db_pool(configs).await, port)
+    (generate_db_pool(&configs).await, configs)
 }
-pub async fn generate_db_pool(configs: Settings) -> PgPool {
+pub async fn generate_db_pool(configs: &Settings) -> PgPool {
     let database_name = &configs.database.database_name;
     // Stablish DB pool connection.
     let connection = PgPool::connect_lazy(configs.database.connection_string().expose_secret())

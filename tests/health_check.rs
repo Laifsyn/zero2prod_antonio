@@ -76,7 +76,7 @@ async fn configure_database() -> PgPool {
         }
     }
 
-    generate_db_pool(config).await // create a connection with the newly created database
+    generate_db_pool(&config).await // create a connection with the newly created database
 }
 async fn create_db(config: &Settings) {
     let mut connection = PgConnection::connect(
