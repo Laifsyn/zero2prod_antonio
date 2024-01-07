@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  zero2prod_service:
+    image: zero2prod_antonio
+    restart: always
+    ports:
+      - 7878:7878
+    environment:
+      - APP__DB_USER="zero2prod"
+      - APP__DB_HOST="postgres_service"
+      - APP__DB_PORT=5432
+      #- etc
+
+  postgres_service:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: zero2prod
+    volumes:
+      # This sets the folder 'pgdata' in the folder you launch
+      # from to be mapped into postgres container as the data store
+      -  ./pgdata:/var/lib/postgresql/data
