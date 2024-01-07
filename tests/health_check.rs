@@ -60,7 +60,7 @@ async fn configure_database() -> PgPool {
     let mut config = get_configuration().expect("Couldn't load config files.");
     config.database.database_name = "test_db".to_string();
     let connection: Result<PgConnection, sqlx::Error> =
-        PgConnection::connect(config.database.connection_string().expose_secret()).await;
+        PgConnection::connect(&config.database.connection_string().expose_secret()).await;
     if let Err(connection_error) = connection {
         match connection_error {
             sqlx::Error::Database(database_error) => match database_error.code().as_deref() {
@@ -76,7 +76,7 @@ async fn configure_database() -> PgPool {
         }
     }
 
-    generate_db_pool(&config).await // create a connection with the newly created database
+    generate_db_pool(config).await // create a connection with the newly created database
 }
 async fn create_db(config: &Settings) {
     let mut connection = PgConnection::connect(

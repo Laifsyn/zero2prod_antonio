@@ -1,4 +1,5 @@
 use crate::configuration::{get_configuration, Settings};
+use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use std::net::TcpListener;
 
@@ -15,15 +16,18 @@ pub fn bind_port(ip_port: String) -> TcpListener {
     // I didn't use `expect(format!())` because clippy would ask me to rewrite as unwrap_or_else
 }
 
-pub async fn get_connection_to_database() -> (PgPool, Settings) {
+pub async fn get_connection_to_database() -> (PgPool, u16) {
     // Load connection from stored settings
     let configs = get_configuration().expect("Failed to read configuration.");
-    (generate_db_pool(&configs).await, configs)
+    let port = configs.application_port;
+    (generate_db_pool(configs).await, port)
 }
-pub async fn generate_db_pool(configs: &Settings) -> PgPool {
+pub async fn generate_db_pool(configs: Settings) -> PgPool {
     let database_name = &configs.database.database_name;
     // Stablish DB pool connection.
-    let connection = PgPool::connect_lazy_with(configs.database.with_db());
+    let connection = PgPool::connect(configs.database.connection_string().expose_secret())
+        .await
+        .unwrap_or_else(|_| panic!("Couldn't connect to Database\n"));
     sqlx::migrate!()
         .run(&connection)
         .await
