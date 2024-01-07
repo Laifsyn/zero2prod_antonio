@@ -1,5 +1,4 @@
 use crate::configuration::{get_configuration, Settings};
-use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use std::net::TcpListener;
 
@@ -24,8 +23,7 @@ pub async fn get_connection_to_database() -> (PgPool, Settings) {
 pub async fn generate_db_pool(configs: &Settings) -> PgPool {
     let database_name = &configs.database.database_name;
     // Stablish DB pool connection.
-    let connection = PgPool::connect_lazy(configs.database.connection_string().expose_secret())
-        .unwrap_or_else(|_| panic!("Couldn't connect to Database\n"));
+    let connection = PgPool::connect_lazy_with(configs.database.with_db());
     sqlx::migrate!()
         .run(&connection)
         .await
