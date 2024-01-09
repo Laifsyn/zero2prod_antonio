@@ -157,10 +157,13 @@ async fn subscribe_returns_a_200_when_fields_are_present_but_empty() {
     // Arrange
     let app = spawn_app().await;
     let client = reqwest::Client::new();
+    let random_email =
+        || -> String { format!("email=ursula_le_guin{}%40gmail.com", Uuid::new_v4()) };
+    let not_email = "email=not-an-email".to_string();
     let test_cases = vec![
-        ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
-        ("name=Ursula&email=", "empty email"),
-        ("name=Ursula&email=definitely-not-an-email", "invalid email"),
+        ("name=&".to_string() + &random_email(), "empty name"),
+        ("name=Ursula&email=".into(), "empty email"),
+        ("name=Ursula&".to_string() + &not_email, "invalid email"),
     ];
 
     for (body, description) in test_cases {
@@ -174,11 +177,10 @@ async fn subscribe_returns_a_200_when_fields_are_present_but_empty() {
             .expect("Failed to execute request.");
 
         // Assert
-        assert_ne!(
-            // For some reason the book is choosing assert_eq!.... I chose to use assert_ne!() instead
+        assert_eq!(
             200,
             response.status().as_u16(),
-            "The API did not returned a 200 OK when the payload was {}.???????????????????",
+            "The API did not returned a 200 OK when the payload was {}",
             description
         );
     }
