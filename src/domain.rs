@@ -36,10 +36,7 @@ impl TryFrom<String> for SubscriberName {
     type Error = String;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        match SubscriberName::is_valid(value.as_str()) {
-            true => Ok(unsafe { SubscriberName::parse(value.as_str()) }),
-            false => Err(format!("{:?} is not a valid subscriber name", value)),
-        }
+        SubscriberName::try_from(value.as_str())
     }
 }
 impl AsRef<str> for SubscriberName {
