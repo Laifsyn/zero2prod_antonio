@@ -8,7 +8,7 @@ pub struct NewSubscriber {
 pub struct SubscriberName(String);
 impl SubscriberName {
     const INVALID_CHARACTERS: &'static [char] = &['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
-    unsafe fn parse(s: &str) -> SubscriberName {
+    unsafe fn parse_unchecked(s: &str) -> SubscriberName {
         Self(s.to_string())
     }
     fn is_valid(s: &str) -> bool {
@@ -26,7 +26,7 @@ impl TryFrom<&str> for SubscriberName {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match SubscriberName::is_valid(value) {
-            true => Ok(unsafe { SubscriberName::parse(value) }),
+            true => Ok(unsafe { SubscriberName::parse_unchecked(value) }),
             false => Err(format!("{:?} is not a valid subscriber name", value)),
         }
     }
