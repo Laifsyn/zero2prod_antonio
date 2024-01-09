@@ -23,9 +23,10 @@ pub async fn subscribe(form: web::Form<UserEmail>, pool: web::Data<PgPool>) -> H
     if subscriber_name.is_err() || form.0.email.is_empty() {
         return HttpResponse::BadRequest().finish();
     }
+    let name = subscriber_name.unwrap();
     let new_subscriber = NewSubscriber {
         email: form.0.email,
-        name: subscriber_name.unwrap(),
+        name,
     };
 
     match insert_subscriber(&new_subscriber, &pool).await {
