@@ -42,8 +42,10 @@ mod tests {
     }
 
     #[test]
-    fn email_is_accepted() {
-        let email = "ur-sula_le.guin@domain.com".to_string();
+    fn valid_emails_are_parsed_successfully() {
+        use fake::faker::internet::en::SafeEmail;
+        use fake::Fake;
+        let email = SafeEmail().fake();
         assert_ok!(SubscriberEmail::parse(email));
     }
 }
