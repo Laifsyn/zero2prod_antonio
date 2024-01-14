@@ -29,6 +29,7 @@ tracing-subscriber = { version = "0.3.18", features = [
 unicode-segmentation = "1"
 serde-aux = "4.3.1"
 claims = "0.7.1"
+validator = "0.16.1"
 
 [dependencies.uuid]
 version = "1.6.1"
