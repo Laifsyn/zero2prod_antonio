@@ -3,8 +3,11 @@ use unicode_segmentation::UnicodeSegmentation;
 pub struct SubscriberName(String);
 impl SubscriberName {
     const INVALID_CHARACTERS: &'static [char] = &['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
-    unsafe fn parse_unchecked(s: &str) -> SubscriberName {
-        Self(s.to_string())
+    unsafe fn parse_unchecked(input: &str) -> SubscriberName {
+        Self(input.to_string())
+    }
+    pub fn parse(input: &str) -> Result<Self, String> {
+        SubscriberName::try_from(input)
     }
     fn is_valid(s: &str) -> bool {
         let is_empty_or_whitespace = s.trim().is_empty();

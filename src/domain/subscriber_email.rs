@@ -3,9 +3,9 @@ use validator::validate_email;
 pub struct SubscriberEmail(String);
 
 impl SubscriberEmail {
-    pub fn parse(s: String) -> Result<SubscriberEmail, String> {
-        if validate_email(&s) {
-            Ok(Self(s))
+    pub fn parse(s: &str) -> Result<SubscriberEmail, String> {
+        if validate_email(s) {
+            Ok(Self(s.to_string()))
         } else {
             Err(format!("{s} is not a valid subscriber email."))
         }
@@ -29,19 +29,19 @@ mod tests {
     #[test]
     fn empty_string_is_rejected() {
         let email = "".to_string();
-        assert_err!(SubscriberEmail::parse(email));
+        assert_err!(SubscriberEmail::parse(&email));
     }
 
     #[test]
     fn email_missing_at_symbol_is_rejected() {
         let email = "ursuladomain.com".to_string();
-        assert_err!(SubscriberEmail::parse(email));
+        assert_err!(SubscriberEmail::parse(&email));
     }
 
     #[test]
     fn email_missing_subject_is_rejected() {
         let email = "@domain.com".to_string();
-        assert_err!(SubscriberEmail::parse(email));
+        assert_err!(SubscriberEmail::parse(&email));
     }
 
     // [...]
@@ -60,6 +60,6 @@ mod tests {
 
     #[quickcheck_macros::quickcheck]
     fn valid_emails_are_parsed_successfully(valid_email: ValidEmailFixture) -> bool {
-        SubscriberEmail::parse(dbg!(valid_email.0)).is_ok()
+        SubscriberEmail::parse(dbg!(valid_email.0.as_ref())).is_ok()
     }
 }

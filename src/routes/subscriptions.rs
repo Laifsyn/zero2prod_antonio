@@ -3,7 +3,7 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{NewSubscriber, SubscriberName};
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 #[derive(serde::Deserialize)]
 #[allow(dead_code)]
 pub struct UserEmail {
@@ -19,16 +19,10 @@ pub struct UserEmail {
     )
 )]
 pub async fn subscribe(form: web::Form<UserEmail>, pool: web::Data<PgPool>) -> HttpResponse {
-    let subscriber_name = SubscriberName::try_from(form.0.name.as_str());
-    if subscriber_name.is_err() || form.0.email.is_empty() {
-        return HttpResponse::BadRequest().finish();
-    }
-    let name = subscriber_name.unwrap();
-    let new_subscriber = NewSubscriber {
-        email: form.0.email,
-        name,
+    let new_subscriber = match form.0.try_into() {
+        Ok(subscriber) => subscriber,
+        Err(_) => return HttpResponse::BadRequest().finish(),
     };
-
     match insert_subscriber(&new_subscriber, &pool).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
@@ -48,7 +42,7 @@ async fn insert_subscriber(
         VALUES ($1, $2, $3, $4)
         "#,
         Uuid::new_v4(),
-        new_subscriber.email,
+        new_subscriber.email.as_ref(),
         new_subscriber.name.as_ref(),
         Utc::now()
     )
@@ -59,4 +53,15 @@ async fn insert_subscriber(
         e
     })?;
     Ok(())
+}
+
+impl TryFrom<UserEmail> for NewSubscriber {
+    type Error = String;
+
+    fn try_from(value: UserEmail) -> Result<Self, Self::Error> {
+        let subscriber_name = SubscriberName::parse(value.name.as_ref())?;
+        let subscriber_email = SubscriberEmail::parse(value.email.as_ref())?;
+        let (email, name) = (subscriber_email, subscriber_name);
+        Ok(NewSubscriber { email, name })
+    }
 }
