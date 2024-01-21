@@ -153,6 +153,40 @@ async fn subscribe_return_ok_200_for_valid_data() {
 }
 
 #[tokio::test]
+async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
+    // Arrange
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+    let random_email =
+        || -> String { format!("email=ursula_le_guin{}%40gmail.com", Uuid::new_v4()) };
+    let not_email = "email=not-an-email".to_string();
+    let test_cases = vec![
+        ("name=&".to_string() + &random_email(), "empty name"),
+        ("name=Ursula&email=".into(), "empty email"),
+        ("name=Ursula&".to_string() + &not_email, "invalid email"),
+    ];
+
+    for (body, description) in test_cases {
+        // Act
+        let response = client
+            .post(&format!("{}/subscriptions", &app.host_address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request.");
+
+        // Assert
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "The API did not return a 400 Bad Request when the payload was {}.",
+            description
+        );
+    }
+}
+
+#[tokio::test]
 async fn subscribe_return_bad_request_400_for_invalid_data() {
     let test_app: TestApp = spawn_app().await;
     let client = reqwest::Client::new();
